@@ -4,7 +4,12 @@
 \alias{qc_check_lookup_values}
 \title{Check column values against system-wide entity registries}
 \usage{
-qc_check_lookup_values(data, lookups, scopes = list())
+qc_check_lookup_values(
+  data,
+  lookups,
+  scopes = list(),
+  taxon_columns = "scientific_name"
+)
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -31,6 +36,14 @@ also in \code{lookups} are ignored.
 This is how a column bound to the whole species registry is restricted to
 one branch of a labelset — the seagrass leaf table's \code{scientific_name}
 accepts a registered name only if it is a seagrass.}
+
+\item{taxon_columns}{Character vector of the columns in \code{data} holding
+scientific names. Their values have rank abbreviations stripped
+(\code{"Halodule sp."} matches \code{"Halodule"}) before comparison, matching the
+registry's convention. Defaults to \code{"scientific_name"}. \code{\link[=qc_run]{qc_run()}} resolves
+it from the columns bound to \code{observation_lookup$scientific_name}, so a
+protocol that names the column something else — the Reef Life Survey table
+calls it \code{species} — is normalised the same way.}
 }
 \value{
 A \link{qc_issues} tibble with one \code{"fail"} row per offending cell, or
@@ -56,9 +69,9 @@ vocabularies. \code{NA} values are always ignored.
 \details{
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} whenever \code{data}
 contains one or more of the recognized lookup columns (\code{partner_code},
-\code{site_name}, \code{site_code}, \code{scientific_name}). Both \code{lookups} and \code{scopes}
-are resolved from the \code{column_lookups} registry table, which declares each
-binding and its optional scope per \code{column_id}.
+\code{site_name}, \code{site_code}, \code{scientific_name}). \code{lookups}, \code{scopes} and
+\code{taxon_columns} are all resolved from the \code{column_lookups} registry table,
+which declares each binding and its optional scope per \code{column_id}.
 }
 \examples{
 df <- data.frame(

@@ -413,3 +413,61 @@ test_that("expand validates its arguments", {
 })
 
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# The predicate column is resolved per table, not hardcoded
+#
+# A protocol may name its scientific-name column whatever its exports name it:
+# Reef Life Survey calls it `species`. The mask must read the column it is told
+# to read, and must still fail closed -- never all-TRUE -- when it cannot.
+# ---------------------------------------------------------------------------
+
+test_that(".qc_scope_mask reads the taxon column it is given, not a fixed name", {
+  d <- data.frame(
+    species = c("Zostera marina", "Halodule wrightii"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_equal(
+    .qc_scope_mask(
+      d,
+      "taxon_within",
+      "Genus:Zostera",
+      taxon_column = "species"
+    ),
+    c(TRUE, FALSE)
+  )
+})
+
+test_that("a named taxon column absent from the data fails closed", {
+  d <- taxa_df(c("Zostera marina", "Halodule wrightii"))
+
+  expect_warning(
+    mask <- .qc_scope_mask(
+      d,
+      "taxon_within",
+      "Genus:Zostera",
+      taxon_column = "species"
+    ),
+    "`species`"
+  )
+  expect_equal(mask, c(FALSE, FALSE))
+})
+
+test_that("an unresolved (NA) taxon column fails closed rather than all-TRUE", {
+  # NA reaches here when a table binds no scientific-name column, or binds more
+  # than one. Matching every row would validate every species against one
+  # clade's bounds -- the one outcome worth failing closed over.
+  d <- taxa_df(c("Zostera marina", "Halodule wrightii"))
+
+  expect_warning(
+    mask <- .qc_scope_mask(
+      d,
+      "taxon_within",
+      "Genus:Zostera",
+      taxon_column = NA_character_
+    ),
+    "no single taxon column"
+  )
+  expect_equal(mask, c(FALSE, FALSE))
+})

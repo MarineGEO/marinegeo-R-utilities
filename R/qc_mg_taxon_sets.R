@@ -439,9 +439,22 @@
 # which for a Zostera leaf band would validate every species against Zostera
 # bounds. That asymmetry is the whole safety property of this function.
 #
-# The predicate column is always `scientific_name`: each scope_type names its
-# own predicate, so there is nothing to declare per rule.
-.qc_scope_mask <- function(data, scope_type, scope_value) {
+# The predicate column is resolved per table, by .qc_taxon_column() in
+# R/qc_mg_rules.R, and passed in. It is NOT the literal name `scientific_name`:
+# a protocol may name the column whatever its exports name it -- Reef Life
+# Survey calls it `species` -- and only its `column_lookups` binding says what
+# it holds. The default keeps a direct caller of qc_check_numeric_ranges()
+# working, and NA means the table resolved no single predicate, which is a
+# no-match like every other unusable scope.
+#
+# Each scope_type names its own predicate, so there is still nothing to declare
+# per rule.
+.qc_scope_mask <- function(
+  data,
+  scope_type,
+  scope_value,
+  taxon_column = .qc_taxon_registry_column
+) {
   n <- nrow(data)
   no_match <- rep(FALSE, n)
 
@@ -472,12 +485,23 @@
     return(no_match)
   }
 
-  if (!"scientific_name" %in% colnames(data)) {
+  if (length(taxon_column) != 1L || is.na(taxon_column)) {
     warning(
       "QC range scope '",
       scope_type,
-      "' needs a `scientific_name` column, which is not present in the data; ",
-      "the rule was not applied."
+      "' has no single taxon column to test on this table; the rule was not ",
+      "applied."
+    )
+    return(no_match)
+  }
+
+  if (!taxon_column %in% colnames(data)) {
+    warning(
+      "QC range scope '",
+      scope_type,
+      "' needs its taxon column `",
+      taxon_column,
+      "`, which is not present in the data; the rule was not applied."
     )
     return(no_match)
   }
@@ -492,7 +516,7 @@
     return(no_match)
   }
 
-  x <- data[["scientific_name"]]
+  x <- data[[taxon_column]]
   set_fn <- if (startsWith(scope_type, "taxon_")) {
     .qc_taxon_sets
   } else {

@@ -260,3 +260,52 @@ test_that("unnamed scopes stops with informative error", {
     "fully named list"
   )
 })
+
+# ---------------------------------------------------------------------------
+# Rank stripping follows the registry binding, not the column's name
+#
+# A protocol may name its scientific-name column something else -- Reef Life
+# Survey calls it `species`. Gating normalisation on the literal name would
+# report "Halodule sp." as an unknown name there while passing it elsewhere.
+# ---------------------------------------------------------------------------
+
+test_that("rank abbreviations are stripped on a named taxon column", {
+  df <- data.frame(species = "Halodule sp.", stringsAsFactors = FALSE)
+
+  result <- qc_check_lookup_values(
+    df,
+    list(species = c("Halodule", "Zostera marina")),
+    taxon_columns = "species"
+  )
+
+  expect_equal(nrow(result), 0L)
+})
+
+test_that("a taxon column not listed in taxon_columns is left unnormalised", {
+  df <- data.frame(species = "Halodule sp.", stringsAsFactors = FALSE)
+
+  result <- qc_check_lookup_values(
+    df,
+    list(species = c("Halodule", "Zostera marina"))
+  )
+
+  expect_equal(result$issue, "unknown_lookup")
+  expect_equal(result$value, "Halodule sp.")
+})
+
+test_that("stripping applies to the scope on a named taxon column too", {
+  df <- data.frame(
+    species = c("Zostera sp.", "Crassostrea spp."),
+    stringsAsFactors = FALSE
+  )
+
+  result <- qc_check_lookup_values(
+    df,
+    lookups = list(species = c("Zostera", "Crassostrea")),
+    scopes = list(species = "Zostera"),
+    taxon_columns = "species"
+  )
+
+  expect_equal(result$issue, "out_of_labelset")
+  expect_equal(result$value, "Crassostrea spp.")
+})
