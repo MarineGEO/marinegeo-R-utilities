@@ -1,3 +1,124 @@
+#' Load RLS Excel data entry spreadsheet into R
+#'
+#' Load one or more sheets from an Reef Life Survey Excel file into R.
+#'
+#' @param filepath the path to the RLS file being loaded
+#' @param sheet_name the name of the sheet int he excel file where the data can be found.
+#'
+#' @returns a dataframe
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' utl_mg_load_excel(
+#'   "L1/rls_example.xlsx",
+#'   "DATA"
+#' )
+#' }
+utl_rls_load_excel <- function(filepath, sheet_name) {
+
+  tryCatch(
+    {
+      df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
+      
+      # Check for necessary columns to process dataframe
+      missing_columns <- dplyr::setdiff(
+        c("Total", "Method", "Site No.", "P-Qs"),
+        colnames(df_raw)
+      )
+      
+      if (length(missing_columns) > 0) {
+        message(paste(
+          "Missing required column(s):",
+          paste(missing_columns, collapse = ", ")
+        ))
+        return(NULL)
+      }
+      
+      # Filter out header rows, files have either 1 or 2 rows
+      # Total, Inverts, and size class columns should remain as numeric data types
+      df <- df_raw |>
+        dplyr::filter(Method != "0, 1, 2")
+      
+      if (nrow(df) == 0) {
+        warning("Dataframe has 0 rows after dropping header rows")
+      }
+      
+      # Calculate the number of rows that were dropped by filter()
+      dropped_rows <- nrow(df_raw) - nrow(df)
+      
+      if (dropped_rows == 1) {
+        print("1 header row dropped")
+      } else if (dropped_rows == 2) {
+        print("2 header rows dropped")
+      } else {
+        print("Unexpected number of rows dropped")
+      }
+      
+      # This section removes the many blank rows from the bottom of the datasheet
+      # rle() identifies runs of consecutive values within a vector
+      # In rle() output:
+      # The final item in the values vector should be TRUE (evaluated as Total == 0)
+      # and the final item in the lengths vector represents the number of rows from the bottom that should be dropped
+      runs <- rle(df$Total == 0)
+      
+      if (dplyr::last(runs$values) & length(runs$lengths) == 1) {
+        warning("Dataframe only has rows with a Total equal to 0")
+      } else if (dplyr::last(runs$values)) {
+        # last row to keep
+        last_row <- nrow(df) - dplyr::last(runs$lengths)
+        
+        df <- df[1:last_row, ]
+        
+        print(paste0(
+          "dropped ",
+          as.character(dplyr::last(runs$lengths)),
+          " rows containing 0 total count from the end of the datasheet"
+        ))
+      } else {
+        print("No rows were dropped from the end of the datasheet")
+      }
+      
+      # Rename some columns to match MarineGEO column standards
+      df <- df |>
+        dplyr::rename(
+          site_code = any_of("Site No."),
+          photoquadrats = any_of("P-Qs")
+        ) |>
+        # Input filename is metadata used to track file curation
+        dplyr::mutate(input_filename = basename(filepath)) |>
+        dplyr::mutate(
+          Method = as.numeric(Method),
+          Block = as.numeric(Block),
+          Time = as.character(Time)
+        ) |>
+        dplyr::mutate(
+          Time = dplyr::case_when(
+            stringr::str_starts(Time, "1899-12-31") ~ trimws(
+              gsub("T", "", gsub("Z", "", gsub("1899-12-31", "", Time)))
+            ),
+            T ~ Time
+          )
+        )
+
+      ## Convert to lower case and remove spaces ####
+      
+      # Convert to lower case and remove spaces
+      colnames(df) <- tolower(gsub(" ", "_", colnames(df)))
+      
+      if (nrow(df) == 0) {
+        warning("Dataframe has 0 rows")
+      }
+      
+      return(df)
+    },
+    error = function(e) {
+      message(paste("Error reading Excel file:", e$message))
+      return(NULL)
+    }
+  )
+}
+
 #' Load MarineGEO Excel data into R
 #'
 #' Load one or more sheets from a MarineGEO Excel file into R.The `output_table`
