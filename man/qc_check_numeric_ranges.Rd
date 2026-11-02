@@ -4,7 +4,7 @@
 \alias{qc_check_numeric_ranges}
 \title{Check numeric column values against expected ranges}
 \usage{
-qc_check_numeric_ranges(data, rules)
+qc_check_numeric_ranges(data, rules, taxon_column = "scientific_name")
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -27,11 +27,18 @@ individually — only non-\code{NA} bounds are applied.
 \code{NA}, which makes the rule unconditional. A non-\code{NA} \code{scope_type} is one of
 \code{"taxon_within"}, \code{"taxon_not_within"}, \code{"in_functional_group"}, or
 \code{"not_in_functional_group"}, and limits the rule to the rows whose
-\code{scientific_name} falls inside (or outside) the clade or functional group
-named by \code{scope_value} — see \code{\link[=utl_mg_expand_taxon_set]{utl_mg_expand_taxon_set()}}.
+\code{taxon_column} value falls inside (or outside) the clade or functional
+group named by \code{scope_value} — see \code{\link[=utl_mg_expand_taxon_set]{utl_mg_expand_taxon_set()}}.
 
 The optional columns \code{rule_id} and \code{description}, when present, are carried
 onto each issue as \code{rule_id} and \code{detail}.}
+
+\item{taxon_column}{Name of the column in \code{data} holding scientific names —
+the predicate a scoped rule tests. Defaults to \code{"scientific_name"}.
+\code{\link[=qc_run]{qc_run()}} resolves it from the table's \code{column_lookups} binding, so a
+protocol may name the column something else: the Reef Life Survey table
+calls it \code{species}. \code{NA} means the table resolves no single taxon column,
+and every scoped rule then matches no rows.}
 }
 \value{
 A \link{qc_issues} tibble with one row per out-of-range value
@@ -63,7 +70,7 @@ recorded as \code{"warn"}.
 A scoped rule is evaluated against the whole table and the out-of-scope rows
 are masked out, so \code{row} is always the row number in \code{data}. A scope that
 cannot be honoured — an unknown \code{scope_type}, an unresolvable \code{scope_value},
-no \code{scientific_name} column, or no taxonomy registry — warns and matches \strong{no
+no \code{taxon_column} in \code{data}, or no taxonomy registry — warns and matches \strong{no
 rows}, so the rule reports nothing rather than firing on every species.
 
 \code{col_index} reflects the column's position in the original \code{data} argument,

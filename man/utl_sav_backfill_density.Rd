@@ -28,7 +28,7 @@ table; links to the MarineGEO data index.}
 \item{\code{input_filename}}{Character. Source file name.}
 \item{\code{shoot_count}}{Numeric. Raw shoot count; set to \code{0} for backfilled
 rows.}
-\item{\code{shoot_density_m2}}{Numeric. Shoot density per square metre; set
+\item{\code{shoot_density_m2}}{Numeric. Shoot density per square meter; set
 to \code{0} for backfilled rows.}
 }}
 }

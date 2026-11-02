@@ -3,13 +3,13 @@
 #' @description
 #' Wraps [plotly::ggplotly()] and optionally controls which traces are visible
 #' by default in the legend. Designed to work with any `ggplot` object produced
-#' by MarineGEO visualisation functions such as [viz_mg_timeseries_annual()].
+#' by MarineGEO visualization functions such as [viz_mg_timeseries_annual()].
 #'
 #' @param plot A `ggplot` object to convert.
 #' @param plotly_visible_traces Character vector or `NULL` (default). Names of
 #'   traces that should be fully visible on initial render. All other traces are
 #'   set to `"legendonly"` (hidden in the plot but togglable via the legend).
-#'   Trace names correspond to the levels of the colour/group aesthetic in the
+#'   Trace names correspond to the levels of the color/group aesthetic in the
 #'   original ggplot. When `NULL`, all traces are visible.
 #'
 #' @return A `plotly` htmlwidget object.
@@ -53,10 +53,14 @@ viz_mg_ggplotly <- function(plot, plotly_visible_traces = NULL) {
   }
 
   if (!is.null(plotly_visible_traces)) {
-    if (!is.character(plotly_visible_traces) ||
+    if (
+      !is.character(plotly_visible_traces) ||
         length(plotly_visible_traces) < 1L ||
-        anyNA(plotly_visible_traces)) {
-      stop("`plotly_visible_traces` must be a non-empty character vector with no NA values.")
+        anyNA(plotly_visible_traces)
+    ) {
+      stop(
+        "`plotly_visible_traces` must be a non-empty character vector with no NA values."
+      )
     }
   }
 

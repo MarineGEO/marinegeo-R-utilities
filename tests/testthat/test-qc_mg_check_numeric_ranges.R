@@ -309,3 +309,61 @@ test_that("a scoped rule reports true row numbers against the bundled taxonomy",
   expect_equal(result$rule_id, "leaf_length_mm__zostera")
   expect_true(grepl("Zostera", result$detail))
 })
+
+test_that("a scoped rule fires against a differently named taxon column", {
+  rules <- make_range_rules(
+    min_fail = 0,
+    max_fail = 10,
+    scope_type = "taxon_within",
+    scope_value = "Genus:Zostera",
+    rule_id = "x__zostera"
+  )
+  df <- data.frame(
+    x = c(500, 500),
+    species = c("Zostera marina", "Halodule wrightii"),
+    stringsAsFactors = FALSE
+  )
+
+  result <- qc_check_numeric_ranges(df, rules, taxon_column = "species")
+
+  # Only the Zostera row is in scope, so only it breaches the bound.
+  expect_equal(result$row, 1L)
+  expect_equal(result$severity, "fail")
+})
+
+test_that("the issue detail names the taxon column actually used", {
+  rules <- make_range_rules(
+    min_fail = 0,
+    max_fail = 10,
+    scope_type = "taxon_within",
+    scope_value = "Genus:Zostera",
+    rule_id = "x__zostera"
+  )
+  df <- data.frame(
+    x = 500,
+    species = "Zostera marina",
+    stringsAsFactors = FALSE
+  )
+
+  result <- qc_check_numeric_ranges(df, rules, taxon_column = "species")
+
+  expect_equal(result$detail, "species taxon_within Genus:Zostera")
+})
+
+test_that("a named taxon column missing from the data warns naming it", {
+  rules <- make_range_rules(
+    scope_type = "taxon_within",
+    scope_value = "Genus:Zostera",
+    rule_id = "x__zostera"
+  )
+
+  expect_warning(
+    result <- qc_check_numeric_ranges(
+      data.frame(x = c(-5, 500)),
+      rules,
+      taxon_column = "species"
+    ),
+    "`species`"
+  )
+  expect_equal(nrow(result), 0L)
+})

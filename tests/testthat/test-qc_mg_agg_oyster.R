@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # Oyster substrate composition point totals.
 #
-# Behavioural assertions ported from the retired
+# Behavioral assertions ported from the retired
 # test-qc_mg_check_point_counts.R (git show
 # 77b0e46^:tests/testthat/test-qc_mg_check_point_counts.R), adjusted to the
 # one-issue-per-group result shape. The canopy-taxa exclusion is the part worth

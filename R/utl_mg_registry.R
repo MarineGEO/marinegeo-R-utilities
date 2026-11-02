@@ -137,7 +137,7 @@
 #'
 #' Binds a `column_id` to a registry table its values must appear in. A
 #' `column_id` absent from this table gets no registry QC at all, which is how
-#' a table using a partner organisation's own site coding opts out.
+#' a table using a partner organization's own site coding opts out.
 #' - `column_id` — Links to `column_ids`.
 #' - `registry_table` — Registry the values are looked up in (e.g.,
 #'   `"site_codes"`).
