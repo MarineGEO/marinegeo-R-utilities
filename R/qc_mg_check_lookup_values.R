@@ -62,7 +62,7 @@
 #'   registry's convention. Defaults to `"scientific_name"`. [qc_run()] resolves
 #'   it from the columns bound to `observation_lookup$scientific_name`, so a
 #'   protocol that names the column something else — the Reef Life Survey table
-#'   calls it `species` — is normalised the same way.
+#'   calls it `species` — is normalized the same way.
 #'
 #' @return A [qc_issues] tibble with one `"fail"` row per offending cell, or
 #'   zero rows if every value is recognized. `row` and `col_index` are 1-based

@@ -57,7 +57,7 @@
   fg
 }
 
-# Every (node, ancestor) pair in `taxonomic_lookup`, by iterated vectorised
+# Every (node, ancestor) pair in `taxonomic_lookup`, by iterated vectorized
 # parent lookup. Each node is its own ancestor, so `Species:Zostera marina`
 # matches that species itself.
 #

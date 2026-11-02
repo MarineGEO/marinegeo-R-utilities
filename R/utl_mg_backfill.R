@@ -244,7 +244,7 @@ utl_sav_backfill_cover <- function(df) {
 #'     \item{`input_filename`}{Character. Source file name.}
 #'     \item{`shoot_count`}{Numeric. Raw shoot count; set to `0` for backfilled
 #'       rows.}
-#'     \item{`shoot_density_m2`}{Numeric. Shoot density per square metre; set
+#'     \item{`shoot_density_m2`}{Numeric. Shoot density per square meter; set
 #'       to `0` for backfilled rows.}
 #'   }
 #'
@@ -454,7 +454,7 @@ utl_sav_backfill_density <- function(df) {
 #'     \item{`input_filename`}{Character. Source file name.}
 #'     \item{`count`}{Numeric. Raw count of a given countable species; set to `0` for backfilled
 #'       rows.}
-#'     \item{`density_m2`}{Numeric. density of countable species per square metre; set
+#'     \item{`density_m2`}{Numeric. density of countable species per square meter; set
 #'       to `0` for backfilled rows.}
 #'   }
 #'
@@ -941,7 +941,7 @@ utl_fouling_backfill_cover <- function(df) {
     # that describe the photograph rather than the observation.
     panel_images <- df_se_all |>
       dplyr::group_by(deployment_period, panel_id) |>
-      dplyr::summarise(
+      dplyr::summarize(
         dplyr::across(
           dplyr::all_of(panel_image_fields),
           \(x) {
@@ -958,7 +958,7 @@ utl_fouling_backfill_cover <- function(df) {
     # Fields fixed by the retrieval of a given panel
     deployment_period_values <- df_se_all |>
       dplyr::group_by(deployment_period) |>
-      dplyr::summarise(
+      dplyr::summarize(
         dplyr::across(
           dplyr::all_of(deployment_period_fields),
           \(x) {

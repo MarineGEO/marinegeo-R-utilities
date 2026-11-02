@@ -265,7 +265,7 @@ test_that("unnamed scopes stops with informative error", {
 # Rank stripping follows the registry binding, not the column's name
 #
 # A protocol may name its scientific-name column something else -- Reef Life
-# Survey calls it `species`. Gating normalisation on the literal name would
+# Survey calls it `species`. Gating normalization on the literal name would
 # report "Halodule sp." as an unknown name there while passing it elsewhere.
 # ---------------------------------------------------------------------------
 
@@ -281,7 +281,7 @@ test_that("rank abbreviations are stripped on a named taxon column", {
   expect_equal(nrow(result), 0L)
 })
 
-test_that("a taxon column not listed in taxon_columns is left unnormalised", {
+test_that("a taxon column not listed in taxon_columns is left unnormalized", {
   df <- data.frame(species = "Halodule sp.", stringsAsFactors = FALSE)
 
   result <- qc_check_lookup_values(

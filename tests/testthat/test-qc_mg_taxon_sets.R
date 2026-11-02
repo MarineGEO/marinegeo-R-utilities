@@ -2,7 +2,7 @@
 # Taxonomy-aware condition targets.
 #
 # The taxon facts (cases keyed to real clades) are asserted against the bundled
-# registry, because the specific contents ARE the behaviour being bought. The
+# registry, because the specific contents ARE the behavior being bought. The
 # grammar, error and cycle cases use small mocked hierarchies.
 #
 # The suite is forced offline by setup.R, so these read bundled data and touch
@@ -75,7 +75,7 @@ test_that("several references give the union of their sets", {
 })
 
 # ---------------------------------------------------------------------------
-# Operator behaviour
+# Operator behavior
 # ---------------------------------------------------------------------------
 
 taxa_df <- function(names) {
@@ -197,7 +197,7 @@ test_that("an unknown tree or label is refused", {
 # The `type=` selector
 #
 # Asserted against the bundled `vegetation` tree, where `type == "primary"` sits
-# on exactly `Seagrass` and `Algae` -- the contents are the behaviour being
+# on exactly `Seagrass` and `Algae` -- the contents are the behavior being
 # bought, the same way the clade cases are.
 # ---------------------------------------------------------------------------
 

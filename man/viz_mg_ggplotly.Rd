@@ -12,7 +12,7 @@ viz_mg_ggplotly(plot, plotly_visible_traces = NULL)
 \item{plotly_visible_traces}{Character vector or \code{NULL} (default). Names of
 traces that should be fully visible on initial render. All other traces are
 set to \code{"legendonly"} (hidden in the plot but togglable via the legend).
-Trace names correspond to the levels of the colour/group aesthetic in the
+Trace names correspond to the levels of the color/group aesthetic in the
 original ggplot. When \code{NULL}, all traces are visible.}
 }
 \value{
@@ -21,7 +21,7 @@ A \code{plotly} htmlwidget object.
 \description{
 Wraps \code{\link[plotly:ggplotly]{plotly::ggplotly()}} and optionally controls which traces are visible
 by default in the legend. Designed to work with any \code{ggplot} object produced
-by MarineGEO visualisation functions such as \code{\link[=viz_mg_timeseries_annual]{viz_mg_timeseries_annual()}}.
+by MarineGEO visualization functions such as \code{\link[=viz_mg_timeseries_annual]{viz_mg_timeseries_annual()}}.
 }
 \details{
 Trace names in a plotly object converted from ggplot2 match the values of

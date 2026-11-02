@@ -749,7 +749,7 @@ test_that("a deliberately offline run reports no stale rule tables", {
 # Per-column registry binding
 #
 # Lookup bindings are declared per `column_id` in `column_lookups`, not by
-# column name system-wide. A table that uses a partner organisation's own site
+# column name system-wide. A table that uses a partner organization's own site
 # coding carries a different `column_id` and so is absent from that table --
 # which is the whole opt-out. Reef Life Survey is the real case.
 # ---------------------------------------------------------------------------
@@ -969,7 +969,7 @@ test_that("a scope_value with no scope_type is ignored, with a warning", {
 # reaching that table matched no rows forever and reported a clean pass.
 #
 # The real taxonomy tables are used so `Genus:Zostera` resolves for real --
-# that resolution is the behaviour under test, not a stub of it.
+# that resolution is the behavior under test, not a stub of it.
 # ---------------------------------------------------------------------------
 
 real_taxonomy <- marinegeo.utils:::marinegeo_metadata[c(

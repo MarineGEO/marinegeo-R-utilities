@@ -43,7 +43,7 @@ scientific names. Their values have rank abbreviations stripped
 registry's convention. Defaults to \code{"scientific_name"}. \code{\link[=qc_run]{qc_run()}} resolves
 it from the columns bound to \code{observation_lookup$scientific_name}, so a
 protocol that names the column something else — the Reef Life Survey table
-calls it \code{species} — is normalised the same way.}
+calls it \code{species} — is normalized the same way.}
 }
 \value{
 A \link{qc_issues} tibble with one \code{"fail"} row per offending cell, or

@@ -107,13 +107,19 @@ qc_flag_server <- function(id, input_list) {
         marinegeo.utils::qc_run(df, output_table)
       }
 
-      observeEvent(input_list$out_df, {
-        # Reset the flag dataframe
-        input_list$flag_df <- tibble(
+      # The empty flag table: no row carries a flag. Used both when new data
+      # arrives and when the warn filter leaves nothing to color.
+      empty_flag_df <- function() {
+        tibble(
           flag = NA_character_,
           row_num = NA_integer_,
           .rows = 0
         )
+      }
+
+      observeEvent(input_list$out_df, {
+        # Reset the flag dataframe
+        input_list$flag_df <- empty_flag_df()
 
         if (is.null(input_list$out_df) || nrow(input_list$out_df) == 0) {
           qc_flags_list(NULL)
@@ -139,12 +145,23 @@ qc_flag_server <- function(id, input_list) {
           filter(check %in% STRUCTURAL_TESTS)
       })
 
-      # Distinct row-level checks that produced at least one flag.
-      row_level_tests <- reactive({
+      # Row-level flags as the table should currently show them: the issue rows
+      # that color a row, minus the warn-level ones when the sidebar toggle is
+      # checked. The dropdown, the coloring observer and the "nothing left to
+      # show" test all read this, so they cannot disagree about what is hidden.
+      visible_flag_table <- reactive({
         req(qc_flags_list())
-        qc_flags_list() %>%
-          filter(!check %in% STRUCTURAL_TESTS, !is.na(row)) %>%
-          pull(check) %>%
+        flag_table <- failures_to_flag_table(qc_flags_list())
+        if (isTRUE(input$hide_warns)) {
+          flag_table <- flag_table %>% filter(color_id != 2L)
+        }
+        flag_table
+      })
+
+      # Distinct row-level checks that produced at least one visible flag.
+      row_level_tests <- reactive({
+        visible_flag_table() %>%
+          pull(test_name) %>%
           unique()
       })
 
@@ -195,7 +212,7 @@ qc_flag_server <- function(id, input_list) {
       }
 
       failures_to_flag_table <- function(issues) {
-        # severity is always present on issue rows, so colour directly.
+        # severity is always present on issue rows, so color directly.
         issues %>%
           filter(!check %in% STRUCTURAL_TESTS, !is.na(row)) %>%
           mutate(
@@ -222,10 +239,19 @@ qc_flag_server <- function(id, input_list) {
           flag_choices <- setNames(c("all", tests), c("Show all flags", labels))
         }
 
+        # This re-renders whenever the hide-warns toggle changes which tests
+        # are offered, so carry the current choice across the rebuild and fall
+        # back to the first one when it no longer has visible flags.
+        current <- isolate(input$select_flag)
         selectInput(
           session$ns("select_flag"),
           "Subset data by flag",
-          choices = flag_choices
+          choices = flag_choices,
+          selected = if (!is.null(current) && current %in% flag_choices) {
+            current
+          } else {
+            NULL
+          }
         )
       })
 
@@ -241,10 +267,12 @@ qc_flag_server <- function(id, input_list) {
         if (!has_warns) {
           return(NULL)
         }
+        # This UI re-renders on every data change; without carrying the
+        # current value the box would silently uncheck itself after each edit.
         checkboxInput(
           session$ns("hide_warns"),
           "Hide warning-level flags",
-          value = FALSE
+          value = isTRUE(isolate(input$hide_warns))
         )
       })
 
@@ -256,15 +284,13 @@ qc_flag_server <- function(id, input_list) {
           return()
         }
 
-        full_flag_table <- failures_to_flag_table(qc_flags_list())
-
-        # Optionally hide warns
-        hide_warns <- isTRUE(input$hide_warns)
-        if (hide_warns) {
-          full_flag_table <- full_flag_table %>% filter(color_id != 2L)
-        }
+        full_flag_table <- visible_flag_table()
 
         if (nrow(full_flag_table) == 0) {
+          # Clear the flags as well: "no_flags" still renders every row and
+          # joins flag_df, so leaving the previous flags in place would keep
+          # coloring the rows the toggle is meant to have hidden.
+          input_list$flag_df <- empty_flag_df()
           input_list$selected_flag <- "no_flags"
           return()
         }
@@ -275,9 +301,17 @@ qc_flag_server <- function(id, input_list) {
             summarize(flag = min(color_id), .groups = "drop")
           input_list$selected_flag <- "all"
         } else {
-          input_list$flag_df <- full_flag_table %>%
+          test_flags <- full_flag_table %>%
             filter(test_name == input$select_flag) %>%
             select(flag = color_id, row_num)
+          if (nrow(test_flags) == 0) {
+            # The selected test only had warn-level flags and they are now
+            # hidden; the dropdown is about to drop it.
+            input_list$flag_df <- empty_flag_df()
+            input_list$selected_flag <- "no_flags"
+            return()
+          }
+          input_list$flag_df <- test_flags
           input_list$selected_flag <- input$select_flag
         }
       })
@@ -354,7 +388,7 @@ qc_flag_server <- function(id, input_list) {
 
       # One alert box per table-scoped check.
       #
-      # Aggregation findings are summarised to a single sentence: one bullet per
+      # Aggregation findings are summarized to a single sentence: one bullet per
       # failing group names the whole group key, which on a real file filled the
       # sidebar and pushed everything else out of view. The groups themselves
       # are in the Sample Event Summary tab. Any other table-scoped check still
