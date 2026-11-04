@@ -56,6 +56,14 @@
 #'   one branch of a labelset — the seagrass leaf table's `scientific_name`
 #'   accepts a registered name only if it is a seagrass.
 #'
+#' @param taxon_columns Character vector of the columns in `data` holding
+#'   scientific names. Their values have rank abbreviations stripped
+#'   (`"Halodule sp."` matches `"Halodule"`) before comparison, matching the
+#'   registry's convention. Defaults to `"scientific_name"`. [qc_run()] resolves
+#'   it from the columns bound to `observation_lookup$scientific_name`, so a
+#'   protocol that names the column something else — the Reef Life Survey table
+#'   calls it `species` — is normalized the same way.
+#'
 #' @return A [qc_issues] tibble with one `"fail"` row per offending cell, or
 #'   zero rows if every value is recognized. `row` and `col_index` are 1-based
 #'   and `value` holds the offending entry. The `issue` distinguishes the two
@@ -71,9 +79,9 @@
 #' @details
 #' This function is called automatically by [qc_run()] whenever `data`
 #' contains one or more of the recognized lookup columns (`partner_code`,
-#' `site_name`, `site_code`, `scientific_name`). Both `lookups` and `scopes`
-#' are resolved from the `column_lookups` registry table, which declares each
-#' binding and its optional scope per `column_id`.
+#' `site_name`, `site_code`, `scientific_name`). `lookups`, `scopes` and
+#' `taxon_columns` are all resolved from the `column_lookups` registry table,
+#' which declares each binding and its optional scope per `column_id`.
 #'
 #' @export
 #'
@@ -104,7 +112,12 @@
 #'   ),
 #'   scopes = list(scientific_name = "Zostera marina")
 #' )
-qc_check_lookup_values <- function(data, lookups, scopes = list()) {
+qc_check_lookup_values <- function(
+  data,
+  lookups,
+  scopes = list(),
+  taxon_columns = "scientific_name"
+) {
   # --- Input validation -------------------------------------------------------
   if (!is.data.frame(data)) {
     stop("`data` must be a data frame.")
@@ -121,7 +134,13 @@ qc_check_lookup_values <- function(data, lookups, scopes = list()) {
     col_vals <- data[[col]]
 
     # Strip rank abbreviations for scientific names to match lookup convention.
-    vals_to_compare <- if (col == "scientific_name") {
+    #
+    # Driven by `taxon_columns` -- the columns bound to
+    # `observation_lookup$scientific_name` -- not by the column's own name,
+    # which would miss a protocol that names it something else and report
+    # "Halodule sp." as an unknown name on one table while passing it on
+    # another.
+    vals_to_compare <- if (col %in% taxon_columns) {
       .strip_rank_abbreviations(col_vals)
     } else {
       col_vals

@@ -14,7 +14,7 @@
 .qc_agg_fouling_cover_points <- function(data) {
   data |>
     dplyr::group_by(sample_event_id, panel_id, deployment_period) |>
-    dplyr::summarise(
+    dplyr::summarize(
       observed = sum(point_count, na.rm = TRUE),
       expected = .qc_agg_declared(points_in_grid),
       n_expected = dplyr::n_distinct(points_in_grid, na.rm = TRUE),

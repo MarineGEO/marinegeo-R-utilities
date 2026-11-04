@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # The aggregation registry, the shared wrapper, and qc_check_aggregation()'s
-# own contract. Per-table behaviour lives in test-qc_mg_agg_*.R.
+# own contract. Per-table behavior lives in test-qc_mg_agg_*.R.
 #
 # The registry consistency tests at the bottom are the important ones: because
 # a spec names its columns as strings, a typo or a column rename in the metadata

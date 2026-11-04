@@ -30,7 +30,7 @@ table; links to the MarineGEO data index.}
 \item{\code{input_filename}}{Character. Source file name.}
 \item{\code{count}}{Numeric. Raw count of a given countable species; set to \code{0} for backfilled
 rows.}
-\item{\code{density_m2}}{Numeric. density of countable species per square metre; set
+\item{\code{density_m2}}{Numeric. density of countable species per square meter; set
 to \code{0} for backfilled rows.}
 }}
 }

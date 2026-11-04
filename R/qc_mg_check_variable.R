@@ -37,12 +37,14 @@
 #' distinguished from a clean one.
 #'
 #' **Taxon-scoped range rules are dropped, not guessed.** A numeric range whose
-#' `scope_type` restricts it to a clade is evaluated against `scientific_name`,
-#' which a single column never supplies. Rather than apply such a bound to
-#' every row as though it were unconditional, the rule is dropped and its
-#' `rule_id` reported in the `rules_skipped` attribute — the only record that a
-#' bound exists for the variable but went unchecked. Validate the whole table
-#' with [qc_run()], or pass `scientific_name` alongside, to exercise it.
+#' `scope_type` restricts it to a clade is evaluated against the table's
+#' scientific-name column, which a single column never supplies. Rather than
+#' apply such a bound to every row as though it were unconditional, the rule is
+#' dropped and its `rule_id` reported in the `rules_skipped` attribute — the
+#' only record that a bound exists for the variable but went unchecked.
+#' Validate the whole table with [qc_run()] to exercise it. That column is
+#' `scientific_name` in most tables but not all — the Reef Life Survey table
+#' calls it `species` — so [utl_mg_column_order()] is the way to find it.
 #'
 #' **Why `table_id` is required.** Metadata is keyed on
 #' `(table_id, column_name)`, and rules genuinely differ between table types for

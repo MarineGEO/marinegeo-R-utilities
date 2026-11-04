@@ -47,12 +47,14 @@ reported in the \code{checks_skipped} attribute, so an empty result can be
 distinguished from a clean one.
 
 \strong{Taxon-scoped range rules are dropped, not guessed.} A numeric range whose
-\code{scope_type} restricts it to a clade is evaluated against \code{scientific_name},
-which a single column never supplies. Rather than apply such a bound to
-every row as though it were unconditional, the rule is dropped and its
-\code{rule_id} reported in the \code{rules_skipped} attribute — the only record that a
-bound exists for the variable but went unchecked. Validate the whole table
-with \code{\link[=qc_run]{qc_run()}}, or pass \code{scientific_name} alongside, to exercise it.
+\code{scope_type} restricts it to a clade is evaluated against the table's
+scientific-name column, which a single column never supplies. Rather than
+apply such a bound to every row as though it were unconditional, the rule is
+dropped and its \code{rule_id} reported in the \code{rules_skipped} attribute — the
+only record that a bound exists for the variable but went unchecked.
+Validate the whole table with \code{\link[=qc_run]{qc_run()}} to exercise it. That column is
+\code{scientific_name} in most tables but not all — the Reef Life Survey table
+calls it \code{species} — so \code{\link[=utl_mg_column_order]{utl_mg_column_order()}} is the way to find it.
 
 \strong{Why \code{table_id} is required.} Metadata is keyed on
 \verb{(table_id, column_name)}, and rules genuinely differ between table types for

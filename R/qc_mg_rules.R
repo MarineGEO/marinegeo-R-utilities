@@ -11,6 +11,11 @@
 # rule table is joined to this table's `database_structure` rows, and the rule
 # frames handed to the checks are still keyed by `column_name`, so the checks
 # themselves are unaware of `column_id`.
+#
+# That applies to a scoped rule's taxon predicate as well as to its target. The
+# predicate column is resolved here, per table, and passed to the checks by
+# name -- it is not the literal string `scientific_name`, which is what it
+# happens to be called in all but one table.
 # ---------------------------------------------------------------------------
 
 # Which checks need the whole table and which work on a single column.
@@ -192,6 +197,23 @@
   "scope_value"
 )
 
+# The registry column that holds scientific names. A `column_lookups` binding
+# onto it is metadata's only statement that a column holds scientific names,
+# and two things need to find that column: the taxon predicate a scoped range
+# rule tests, and the rank-abbreviation stripping in
+# qc_check_lookup_values().
+#
+# Resolving it this way rather than by `column_id == "scientific_name"` is
+# deliberate. The taxon ids are a family -- `scientific_name`,
+# `scientific_name_seagrass_cover`, `scientific_name_seagrass_only` -- and the
+# one pre-existing scoped rule (`leaf_length_mm` under Genus:Zostera) reaches
+# only `seagrass-leaf-monitoring-v1`, which carries the narrowed
+# `_seagrass_only` id. Keying on the bare id would make Reef Life Survey work
+# and silently stop that rule firing. Keying on the binding covers every member
+# of the family, and a narrowed id added later needs no change here.
+.qc_taxon_registry_table <- "observation_lookup"
+.qc_taxon_registry_column <- "scientific_name"
+
 # The permitted subset of one registry column, for a binding that carries a
 # labelset scope. Returns NULL when the scope cannot be resolved, which the
 # caller reads as "no narrowing".
@@ -232,6 +254,73 @@
   unique(as.character(reg[[registry_column]][keep]))
 }
 
+# This table's `column_lookups` rows, keyed back to column_name.
+#
+# Resolved once by .qc_resolve_rules() and handed to both readers below --
+# .qc_lookup_registries() and .qc_taxon_column(). Fetching it twice would
+# double the registry round trip and let the two disagree if the live table
+# changed between them.
+.qc_lookup_bindings <- function(map) {
+  .qc_bind_column_names(
+    .qc_registry_rules_by_column(
+      "column_lookups",
+      .qc_lookup_rule_cols,
+      map$column_id
+    ),
+    map
+  )
+}
+
+# Which of this table's columns hold scientific names, by their binding onto
+# `observation_lookup$scientific_name`. Several is normal and fine here: every
+# such column wants its rank abbreviations stripped.
+.qc_taxon_name_columns <- function(lk) {
+  if (!is.data.frame(lk) || nrow(lk) == 0) {
+    return(character(0))
+  }
+  keep <- !is.na(lk$registry_table) &
+    lk$registry_table == .qc_taxon_registry_table &
+    !is.na(lk$registry_column) &
+    lk$registry_column == .qc_taxon_registry_column
+  unique(as.character(lk$column_name[keep]))
+}
+
+# The single column a taxon-scoped range rule tests, for one table.
+#
+# The fallback to a column literally named `scientific_name` covers a table
+# that binds none: staying out of `column_lookups` is how a partner-coded table
+# opts out of the MarineGEO registries (see [utl_mg_get_registry()]), and such a
+# table must keep behaving as it did before the predicate became resolvable.
+#
+# Two bound columns is ambiguous, and picking one arbitrarily would validate
+# rows against the wrong taxon. Fail closed instead: the NA returned here
+# reaches .qc_scope_mask() as "no predicate", which is the all-FALSE mask.
+.qc_taxon_column <- function(lk, column_names) {
+  cols <- .qc_taxon_name_columns(lk)
+  if (length(cols) == 1L) {
+    return(cols)
+  }
+  if (length(cols) > 1L) {
+    warning(
+      "This table binds ",
+      length(cols),
+      " columns (",
+      paste(cols, collapse = ", "),
+      ") to `",
+      .qc_taxon_registry_table,
+      "$",
+      .qc_taxon_registry_column,
+      "`, so a taxon-scoped range rule cannot tell which one to test; no such ",
+      "rule was applied."
+    )
+    return(NA_character_)
+  }
+  if (.qc_taxon_registry_column %in% column_names) {
+    return(.qc_taxon_registry_column)
+  }
+  NA_character_
+}
+
 # The entity registries this table's columns are bound to, and the narrower sets
 # some of them are scoped to -- both keyed by the column name they validate.
 #
@@ -245,15 +334,7 @@
 # nothing. That is the permissive direction, chosen to match how every other
 # piece of unusable rule metadata degrades; it is also why the metadata repo
 # fails the build on a scope that does not resolve there.
-.qc_lookup_registries <- function(map) {
-  lk <- .qc_bind_column_names(
-    .qc_registry_rules_by_column(
-      "column_lookups",
-      .qc_lookup_rule_cols,
-      map$column_id
-    ),
-    map
-  )
+.qc_lookup_registries <- function(lk) {
   if (nrow(lk) == 0) {
     return(list(lookups = list(), scopes = list()))
   }
@@ -346,6 +427,12 @@
 #   lookup_scopes - named list of the narrower permitted sets, for those
 #                 bindings that carry a labelset scope. A column absent from it
 #                 is checked against the whole of its registry.
+#   taxon_column  - the one column_name a taxon-scoped range rule tests on this
+#                 table, or NA when the table resolves none or more than one.
+#                 NA makes every scoped rule fail closed rather than fire
+#                 unconditionally.
+#   taxon_name_columns - every column_name holding scientific names, for the
+#                 rank-abbreviation stripping in qc_check_lookup_values().
 .qc_resolve_rules <- function(table_id) {
   tbl_struct <- .qc_filter_by_table(
     .mg_get_registry_table("database_structure"),
@@ -392,7 +479,8 @@
   }
   tbl_ranges <- .qc_bind_column_names(tbl_ranges, map, order_by = "rule_id")
 
-  tbl_lookups <- .qc_lookup_registries(map)
+  lk <- .qc_lookup_bindings(map)
+  tbl_lookups <- .qc_lookup_registries(lk)
 
   list(
     table_id = table_id,
@@ -401,7 +489,9 @@
     categorical = tbl_cats,
     ranges = tbl_ranges,
     lookups = tbl_lookups$lookups,
-    lookup_scopes = tbl_lookups$scopes
+    lookup_scopes = tbl_lookups$scopes,
+    taxon_column = .qc_taxon_column(lk, tbl_struct$column_name),
+    taxon_name_columns = .qc_taxon_name_columns(lk)
   )
 }
 

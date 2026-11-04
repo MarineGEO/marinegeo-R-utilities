@@ -22,7 +22,7 @@
       quadrat,
       sample_collection_date
     ) |>
-    dplyr::summarise(
+    dplyr::summarize(
       observed = sum(point_count, na.rm = TRUE),
       expected = .qc_agg_declared(points_in_quadrat),
       n_expected = dplyr::n_distinct(points_in_quadrat, na.rm = TRUE),

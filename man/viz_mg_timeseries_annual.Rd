@@ -35,7 +35,7 @@ automatically. \strong{Note:} data points outside the specified range are
 silently dropped by ggplot2.}
 
 \item{y_grouping_var}{Character scalar. Name of the column in \code{df} whose
-unique values define the line groups (colour and line grouping).}
+unique values define the line groups (color and line grouping).}
 
 \item{facet_var}{Character scalar or \code{NULL} (default). Name of the column
 in \code{df} to use for \code{\link[ggplot2:facet_wrap]{ggplot2::facet_wrap()}} panels. When \code{NULL}, no
@@ -55,9 +55,9 @@ the plot (e.g., with \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}) or convert
 interactive widget with \code{\link[=viz_mg_ggplotly]{viz_mg_ggplotly()}}.
 }
 \description{
-Creates a \code{ggplot2} line-and-point chart for visualising yearly MarineGEO
+Creates a \code{ggplot2} line-and-point chart for visualizing yearly MarineGEO
 monitoring data. Each level of \code{y_grouping_var} is drawn as a separate
-coloured line. Optionally, the chart can be faceted by a categorical
+colored line. Optionally, the chart can be faceted by a categorical
 variable and y-axis limits can be fixed.
 
 To render the result as an interactive plotly widget, pass the returned

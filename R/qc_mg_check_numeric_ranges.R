@@ -26,11 +26,17 @@
 #'   `NA`, which makes the rule unconditional. A non-`NA` `scope_type` is one of
 #'   `"taxon_within"`, `"taxon_not_within"`, `"in_functional_group"`, or
 #'   `"not_in_functional_group"`, and limits the rule to the rows whose
-#'   `scientific_name` falls inside (or outside) the clade or functional group
-#'   named by `scope_value` — see [utl_mg_expand_taxon_set()].
+#'   `taxon_column` value falls inside (or outside) the clade or functional
+#'   group named by `scope_value` — see [utl_mg_expand_taxon_set()].
 #'
 #'   The optional columns `rule_id` and `description`, when present, are carried
 #'   onto each issue as `rule_id` and `detail`.
+#' @param taxon_column Name of the column in `data` holding scientific names —
+#'   the predicate a scoped rule tests. Defaults to `"scientific_name"`.
+#'   [qc_run()] resolves it from the table's `column_lookups` binding, so a
+#'   protocol may name the column something else: the Reef Life Survey table
+#'   calls it `species`. `NA` means the table resolves no single taxon column,
+#'   and every scoped rule then matches no rows.
 #'
 #' @return A [qc_issues] tibble with one row per out-of-range value
 #'   (`issue = "out_of_range"`), or zero rows if all values are within range.
@@ -54,7 +60,7 @@
 #' A scoped rule is evaluated against the whole table and the out-of-scope rows
 #' are masked out, so `row` is always the row number in `data`. A scope that
 #' cannot be honoured — an unknown `scope_type`, an unresolvable `scope_value`,
-#' no `scientific_name` column, or no taxonomy registry — warns and matches **no
+#' no `taxon_column` in `data`, or no taxonomy registry — warns and matches **no
 #' rows**, so the rule reports nothing rather than firing on every species.
 #'
 #' `col_index` reflects the column's position in the original `data` argument,
@@ -86,7 +92,11 @@
 #'
 #' # percent_cover 110 > 100 (fail), -5 < 0 (fail), 50 > 80 (warn within fail)
 #' qc_check_numeric_ranges(df, rules)
-qc_check_numeric_ranges <- function(data, rules) {
+qc_check_numeric_ranges <- function(
+  data,
+  rules,
+  taxon_column = "scientific_name"
+) {
   # --- Input validation -------------------------------------------------------
   required_cols <- c(
     "column_name",
@@ -135,7 +145,12 @@ qc_check_numeric_ranges <- function(data, rules) {
 
     # The mask is over the full table, so valid_idx IS the row number in
     # `data` and the issue rows need no remapping.
-    in_scope <- .qc_scope_mask(data, rule$scope_type, rule$scope_value)
+    in_scope <- .qc_scope_mask(
+      data,
+      rule$scope_type,
+      rule$scope_value,
+      taxon_column = taxon_column
+    )
     valid_idx <- which(!is.na(values) & in_scope)
     v <- values[valid_idx]
 
@@ -168,7 +183,7 @@ qc_check_numeric_ranges <- function(data, rules) {
         col_index = col_pos,
         value = as.character(values[rows]),
         rule_id = .qc_rule_field(rule, "rule_id"),
-        detail = .qc_range_detail(rule)
+        detail = .qc_range_detail(rule, taxon_column)
       )
     }
 
@@ -198,7 +213,7 @@ qc_check_numeric_ranges <- function(data, rules) {
 # What to put in an issue's `detail`: the rule's authored description, or, for a
 # scoped rule without one, the scope itself, so a reader can see why the rule
 # applied to these rows and not others.
-.qc_range_detail <- function(rule) {
+.qc_range_detail <- function(rule, taxon_column = .qc_taxon_registry_column) {
   desc <- .qc_rule_field(rule, "description")
   if (!is.na(desc)) {
     return(desc)
@@ -208,7 +223,12 @@ qc_check_numeric_ranges <- function(data, rules) {
     return(NA_character_)
   }
   sprintf(
-    "scientific_name %s %s",
+    "%s %s %s",
+    if (length(taxon_column) == 1L && !is.na(taxon_column)) {
+      taxon_column
+    } else {
+      .qc_taxon_registry_column
+    },
     scope_type,
     .qc_rule_field(rule, "scope_value")
   )

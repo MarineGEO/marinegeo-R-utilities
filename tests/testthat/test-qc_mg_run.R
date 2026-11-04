@@ -749,7 +749,7 @@ test_that("a deliberately offline run reports no stale rule tables", {
 # Per-column registry binding
 #
 # Lookup bindings are declared per `column_id` in `column_lookups`, not by
-# column name system-wide. A table that uses a partner organisation's own site
+# column name system-wide. A table that uses a partner organization's own site
 # coding carries a different `column_id` and so is absent from that table --
 # which is the whole opt-out. Reef Life Survey is the real case.
 # ---------------------------------------------------------------------------
@@ -958,4 +958,173 @@ test_that("a scope_value with no scope_type is ignored, with a warning", {
     "but no scope_type"
   )
   expect_equal(nrow(result[result$check == "qc_check_lookup_values", ]), 0L)
+})
+
+# ---------------------------------------------------------------------------
+# The taxon predicate is resolved from the registry binding
+#
+# Rules are keyed on `column_id`, and a scoped rule's predicate must be too.
+# The Reef Life Survey table carries `column_id = scientific_name` on a column
+# *named* `species`; before the predicate became resolvable, every scoped rule
+# reaching that table matched no rows forever and reported a clean pass.
+#
+# The real taxonomy tables are used so `Genus:Zostera` resolves for real --
+# that resolution is the behavior under test, not a stub of it.
+# ---------------------------------------------------------------------------
+
+real_taxonomy <- marinegeo.utils:::marinegeo_metadata[c(
+  "observation_lookup",
+  "taxonomic_lookup",
+  "nested_labelsets"
+)]
+
+# A table shaped like Reef Life Survey: the taxon column_id sits on a column
+# named something else. `taxon_column_id` lets the same mock take the narrowed
+# seagrass id, which is the shape the one pre-existing scoped rule lives on.
+taxon_predicate_metadata <- function(
+  taxon_column_name = "species",
+  taxon_column_id = "scientific_name",
+  extra_lookups = NULL
+) {
+  lookups <- data.frame(
+    column_id = taxon_column_id,
+    registry_table = "observation_lookup",
+    registry_column = "scientific_name",
+    scope_type = NA_character_,
+    scope_value = NA_character_,
+    stringsAsFactors = FALSE
+  )
+  c(
+    list(
+      database_structure = data.frame(
+        table_id = c("rls_like_v1", "rls_like_v1"),
+        column_name = c(taxon_column_name, "inverts"),
+        column_id = c(taxon_column_id, "inverts"),
+        data_type = c("STRING", "INT"),
+        stringsAsFactors = FALSE
+      ),
+      column_ids = data.frame(
+        column_id = c(taxon_column_id, "inverts"),
+        label = c("Scientific name", "Invertebrate count"),
+        unit = c(NA_character_, NA_character_),
+        stringsAsFactors = FALSE
+      ),
+      column_lookups = rbind(lookups, extra_lookups),
+      numeric_ranges = data.frame(
+        rule_id = "inverts__taxon_within__genus_zostera",
+        column_id = "inverts",
+        scope_type = "taxon_within",
+        scope_value = "Genus:Zostera",
+        range_type = "inclusive",
+        max_fail = 1,
+        min_fail = NA_real_,
+        max_warn = NA_real_,
+        min_warn = NA_real_,
+        stringsAsFactors = FALSE
+      )
+    ),
+    real_taxonomy
+  )
+}
+
+test_that("a scoped rule fires on a table whose taxon column is named `species`", {
+  local_mocked_bindings(
+    marinegeo_metadata = taxon_predicate_metadata(),
+    .package = "marinegeo.utils"
+  )
+
+  df <- data.frame(
+    species = c("Zostera marina", "Halodule wrightii"),
+    inverts = c(5L, 5L),
+    stringsAsFactors = FALSE
+  )
+  result <- qc_run(df, table_id = "rls_like_v1", verbose = FALSE)
+
+  ranges <- result[result$check == "qc_check_numeric_ranges", ]
+  # Identical values, opposite verdicts: the mask is row-wise, not all-TRUE.
+  expect_equal(ranges$row, 1L)
+  expect_equal(ranges$severity, "fail")
+  expect_true("qc_check_numeric_ranges" %in% attr(result, "checks_run"))
+  expect_equal(attr(result, "rules_skipped"), character(0))
+})
+
+test_that("a scoped rule still fires on the narrowed seagrass column_id", {
+  # Regression guard: `seagrass-leaf-monitoring-v1` carries
+  # `scientific_name_seagrass_only` on a column named `scientific_name`.
+  # Resolving the predicate by `column_id == "scientific_name"` would have
+  # fixed Reef Life Survey and silently stopped this one firing.
+  local_mocked_bindings(
+    marinegeo_metadata = taxon_predicate_metadata(
+      taxon_column_name = "scientific_name",
+      taxon_column_id = "scientific_name_seagrass_only"
+    ),
+    .package = "marinegeo.utils"
+  )
+
+  df <- data.frame(
+    scientific_name = c("Zostera marina", "Halodule wrightii"),
+    inverts = c(5L, 5L),
+    stringsAsFactors = FALSE
+  )
+  result <- qc_run(df, table_id = "rls_like_v1", verbose = FALSE)
+
+  ranges <- result[result$check == "qc_check_numeric_ranges", ]
+  expect_equal(ranges$row, 1L)
+  expect_equal(ranges$severity, "fail")
+})
+
+test_that("two bound taxon columns are ambiguous, so the rule does not fire", {
+  # Picking one arbitrarily would validate rows against the wrong taxon.
+  ambiguous <- taxon_predicate_metadata(
+    extra_lookups = data.frame(
+      column_id = "inverts",
+      registry_table = "observation_lookup",
+      registry_column = "scientific_name",
+      scope_type = NA_character_,
+      scope_value = NA_character_,
+      stringsAsFactors = FALSE
+    )
+  )
+  local_mocked_bindings(
+    marinegeo_metadata = ambiguous,
+    .package = "marinegeo.utils"
+  )
+
+  expect_warning(
+    .qc_resolve_rules("rls_like_v1"),
+    "cannot tell which one to test"
+  )
+
+  df <- data.frame(
+    species = c("Zostera marina", "Halodule wrightii"),
+    inverts = c(5L, 5L),
+    stringsAsFactors = FALSE
+  )
+  result <- suppressWarnings(
+    qc_run(df, table_id = "rls_like_v1", verbose = FALSE)
+  )
+
+  expect_equal(nrow(result[result$check == "qc_check_numeric_ranges", ]), 0L)
+})
+
+test_that("in column scope a scoped rule is skipped by its resolved name", {
+  local_mocked_bindings(
+    marinegeo_metadata = taxon_predicate_metadata(),
+    .package = "marinegeo.utils"
+  )
+
+  # `inverts` alone: the predicate column was not supplied, so the rule is
+  # dropped rather than applied as though it were unconditional.
+  result <- qc_run(
+    data.frame(inverts = c(5L, 5L)),
+    table_id = "rls_like_v1",
+    partial = TRUE,
+    verbose = FALSE
+  )
+
+  expect_equal(
+    attr(result, "rules_skipped"),
+    "inverts__taxon_within__genus_zostera"
+  )
+  expect_equal(nrow(result[result$check == "qc_check_numeric_ranges", ]), 0L)
 })

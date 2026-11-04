@@ -217,6 +217,13 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   lookup_map <- rules$lookups
   lookup_scope_map <- rules$lookup_scopes
 
+  # The column a taxon-scoped range rule tests, and the columns whose values are
+  # scientific names. Both resolved from `column_lookups` by
+  # .qc_resolve_rules(), because the column need not be *named*
+  # `scientific_name` -- the Reef Life Survey table calls it `species`.
+  taxon_column <- rules$taxon_column
+  taxon_name_columns <- rules$taxon_name_columns
+
   table_scope <- identical(scope, "table")
   checks_skipped <- if (table_scope) {
     character(0)
@@ -272,18 +279,24 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
     tbl_cats <- .qc_filter_by_column(tbl_cats, present)
     tbl_ranges <- .qc_filter_by_column(tbl_ranges, present)
 
-    # A scoped range rule needs its predicate column, `scientific_name`, which
-    # a column subset may not include. Such a rule is dropped rather than
-    # applied as though it were unconditional -- that would validate
-    # `leaf_length_mm` against Zostera bounds for every species -- and is
-    # reported in `rules_skipped`. This is the path qc_check_variable() takes,
-    # where only one column is ever supplied.
+    # A scoped range rule needs its predicate column, which a column subset may
+    # not include. Such a rule is dropped rather than applied as though it were
+    # unconditional -- that would validate `leaf_length_mm` against Zostera
+    # bounds for every species -- and is reported in `rules_skipped`. This is
+    # the path qc_check_variable() takes, where only one column is ever
+    # supplied.
+    #
+    # An NA `taxon_column` means the table resolves no single predicate at all,
+    # so every scoped rule is unavailable whatever columns were supplied.
     scoped <- if ("scope_type" %in% colnames(tbl_ranges)) {
       !is.na(tbl_ranges$scope_type) & nzchar(trimws(tbl_ranges$scope_type))
     } else {
       rep(FALSE, nrow(tbl_ranges))
     }
-    unavail <- scoped & !("scientific_name" %in% present)
+    have_taxon <- length(taxon_column) == 1L &&
+      !is.na(taxon_column) &&
+      taxon_column %in% present
+    unavail <- scoped & !have_taxon
     rules_skipped <- unique(as.character(tbl_ranges$rule_id[unavail]))
     tbl_ranges <- tbl_ranges[!unavail, , drop = FALSE]
 
@@ -349,7 +362,8 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   if (nrow(tbl_ranges) > 0) {
     results$qc_check_numeric_ranges <- qc_check_numeric_ranges(
       data = data,
-      rules = .qc_keep_cols(tbl_ranges, .qc_range_rule_cols)
+      rules = .qc_keep_cols(tbl_ranges, .qc_range_rule_cols),
+      taxon_column = taxon_column
     )
   }
 
@@ -361,7 +375,8 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
       lookups = lookup_map[present_lookup_cols],
       scopes = lookup_scope_map[
         intersect(names(lookup_scope_map), present_lookup_cols)
-      ]
+      ],
+      taxon_columns = taxon_name_columns
     )
   }
 

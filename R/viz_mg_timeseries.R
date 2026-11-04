@@ -1,9 +1,9 @@
 #' Plot annual time-series data with grouped lines
 #'
 #' @description
-#' Creates a `ggplot2` line-and-point chart for visualising yearly MarineGEO
+#' Creates a `ggplot2` line-and-point chart for visualizing yearly MarineGEO
 #' monitoring data. Each level of `y_grouping_var` is drawn as a separate
-#' coloured line. Optionally, the chart can be faceted by a categorical
+#' colored line. Optionally, the chart can be faceted by a categorical
 #' variable and y-axis limits can be fixed.
 #'
 #' To render the result as an interactive plotly widget, pass the returned
@@ -22,7 +22,7 @@
 #'   automatically. **Note:** data points outside the specified range are
 #'   silently dropped by ggplot2.
 #' @param y_grouping_var Character scalar. Name of the column in `df` whose
-#'   unique values define the line groups (colour and line grouping).
+#'   unique values define the line groups (color and line grouping).
 #' @param facet_var Character scalar or `NULL` (default). Name of the column
 #'   in `df` to use for [ggplot2::facet_wrap()] panels. When `NULL`, no
 #'   faceting is applied.

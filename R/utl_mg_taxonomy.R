@@ -1,6 +1,6 @@
-# WoRMS spells a few ranks with a parenthetical synonym. Normalising both sides
+# WoRMS spells a few ranks with a parenthetical synonym. Normalizing both sides
 # lets a caller say `Phylum` and match a stored "Phylum (Division)" row.
-# NA-safe, and vectorised so it can normalise a whole column; shared by the
+# NA-safe, and vectorized so it can normalize a whole column; shared by the
 # adjacency traversal and the ancestor-label code, which each applied this
 # mapping inline before.
 .qc_norm_rank <- function(x) {
