@@ -417,6 +417,9 @@ sample_event_server <- function(id, input_list) {
         } else if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
           df <- tibble(status = "add sample event ID column!")
           
+        } else if(is.null(get_rls_project())){
+          df <- tibble()
+          
         } else {
           
           rls_data <- input_list$out_df %>%
@@ -453,6 +456,9 @@ sample_event_server <- function(id, input_list) {
           
         } else if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
           df <- tibble(status = "add sample event ID column!")
+        
+        } else if(is.null(get_rls_project())){
+          df <- tibble()
           
         } else {
           
