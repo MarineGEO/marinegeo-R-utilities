@@ -1,4 +1,4 @@
-# Live access to MarineGEO registry tables from Smithsonian/marinegeo-metadata
+# Live access to MarineGEO registry tables from MarineGEO/marinegeo-metadata
 #
 # The metadata repo publishes generated JSON bundles under dist/, built from
 # its authored CSV sources by R/generate-metadata-dist.R. This package reads
@@ -135,7 +135,7 @@
 #' @noRd
 .mg_raw_base <- function(ref = .mg_metadata_ref()) {
   paste0(
-    "https://raw.githubusercontent.com/Smithsonian/marinegeo-metadata/",
+    "https://raw.githubusercontent.com/MarineGEO/marinegeo-metadata/",
     ref,
     "/"
   )

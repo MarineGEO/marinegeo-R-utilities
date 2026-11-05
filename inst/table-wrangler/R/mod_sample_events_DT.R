@@ -17,12 +17,12 @@ sample_event_server <- function(id, input_list) {
         if(input_list$output_table_id == "reef-life-survey-data-marinegeo-v1"){
 
           div(
-            card("Check that sample events (dives) in this file are defined in the roster. If one or more divers are listed in the Initials or Diver column (depending on project), then the dive in the data matches the roster",
-                 DTOutput(session$ns("file_sample_events")),
-                 full_screen = TRUE),
-
             card("Check that all Method - Block combinations are represented. This table pulls in L2 data derived from other input files, if it exists. You can also review all metadata values for visibility, direction, time, and photoquadrat status across all files.",
                  DTOutput(session$ns("all_sample_events")),
+                 full_screen = TRUE),
+            
+            card("Check that sample events (dives) in this file are defined in the roster. If one or more divers are listed in the Initials or Diver column (depending on project), then the dive in the data matches the roster",
+                 DTOutput(session$ns("file_sample_events")),
                  full_screen = TRUE)
           )
         } else if(str_starts(input_list$output_table_id, "oyster-2025")){
@@ -402,6 +402,7 @@ sample_event_server <- function(id, input_list) {
         return(rls_l2_data)
       }
       
+      # ... Roster table ####
       output$file_sample_events <- renderDT({
         
         req(input_list$selected_flag)
@@ -441,7 +442,8 @@ sample_event_server <- function(id, input_list) {
           )
         
       })
-      
+       
+      #### ... RLS sample event summary ####
       output$all_sample_events <- renderDT({
         
         req(input_list$selected_flag)
@@ -457,12 +459,12 @@ sample_event_server <- function(id, input_list) {
         } else if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
           df <- tibble(status = "add sample event ID column!")
         
-        } else if(is.null(get_rls_project())){
-          df <- tibble()
-          
         } else {
           
           site_names <- unique(input_list$out_df$site_name)
+          
+          # extract year of currently loaded survey
+          survey_year <- first(year(input_list$out_df$date))
           
           df_in <- input_list$out_df
           
@@ -481,19 +483,19 @@ sample_event_server <- function(id, input_list) {
               mutate(time = as.character(time))
           }
           
-          project_sample_events <- load_rls_roster(get_rls_project()) %>%
-            count(sample_event_id) %>%
-            pull(sample_event_id)
+          # project_sample_events <- load_rls_roster(get_rls_project()) %>%
+          #   count(sample_event_id) %>%
+          #   pull(sample_event_id)
           
           rls_data <- bind_rows(
             df_in %>%
               select(any_of(req_cols)) %>%
               distinct(), 
             
-            load_rls_l2_data() %>%
-              filter(input_filename != input_list$data_filename) %>%
+            load_rls_l2_data() %>% 
+              filter(input_filename != input_list$data_filename) %>% 
               filter(site_name %in% site_names,
-                     sample_event_id %in% project_sample_events) %>%
+                     year(date) == survey_year) %>% 
               collect()
           )
           
