@@ -8,8 +8,8 @@
 # In addition, functions used in this section must be sourced from the `tidyverse`, `marinegeo.utils`,
 # or from `base` R packages.
 
-# to update or install `marinegeo.utils`, run (requires `devtool` package):
-# devtools::install_github('https://github.com/Smithsonian/marinegeo-R-utilities')
+# to update or install `marinegeo.utils`, run (requires `devtools` package):
+# devtools::install_github('https://github.com/MarineGEO/marinegeo-R-utilities')
 
 # to launch the app, run marinegeo.utils::shiny_launch_table_wrangler()
 
