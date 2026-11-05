@@ -14,8 +14,8 @@
 #     do not change name of the `df_out` dataframe in this script.
 
 # `marinegeo.utils` is a package of functions and resources to assist
-# in common data management tasks. To install, run (requires `devtool` package):
-# devtools::install_github('https://github.com/Smithsonian/marinegeo-R-utilities')
+# in common data management tasks. To install, run (requires `devtools` package):
+# devtools::install_github('https://github.com/MarineGEO/marinegeo-R-utilities')
 
 # Use the MarineGEO Table Wrangler Shiny application to support processing
 # run: marinegeo.utils::shiny_launch_table_wrangler()
