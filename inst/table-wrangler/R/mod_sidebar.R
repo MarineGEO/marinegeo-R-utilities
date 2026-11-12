@@ -301,9 +301,13 @@ qc_flag_server <- function(id, input_list) {
             summarize(flag = min(color_id), .groups = "drop")
           input_list$selected_flag <- "all"
         } else {
+          # One check can flag the same row at both severities (e.g. two
+          # columns breaking a warn and a fail rule). Keep one entry per row,
+          # the most severe, or the row_num join duplicates the data row.
           test_flags <- full_flag_table %>%
             filter(test_name == input$select_flag) %>%
-            select(flag = color_id, row_num)
+            group_by(row_num) %>%
+            summarize(flag = min(color_id), .groups = "drop")
           if (nrow(test_flags) == 0) {
             # The selected test only had warn-level flags and they are now
             # hidden; the dropdown is about to drop it.
