@@ -13,6 +13,12 @@ general_sidebar_server <- function(id, input_list) {
     id,
     function(input, output, session) {
       output$filename <- renderUI({
+        if (identical(input_list$source_level, "L2")) {
+          return(div(
+            tags$strong(input_list$output_table_id),
+            div(paste0("L2 extract (", nrow(input_list$out_df), " rows)"))
+          ))
+        }
         req(input_list$data_filename)
         div(input_list$data_filename)
       })

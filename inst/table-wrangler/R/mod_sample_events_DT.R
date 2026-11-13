@@ -309,8 +309,11 @@ sample_event_server <- function(id, input_list) {
       
       ## Reef Life Survey ####
       get_rls_project <- reactive({
-        
-        if(str_starts(input_list$project_directory, "EPA-2024/")){
+
+        # L2 extracts span many files, so there is no single project roster
+        if(is.null(input_list$project_directory)){
+          proj_roster <- NULL
+        } else if(str_starts(input_list$project_directory, "EPA-2024/")){
           proj_roster <- "EPA-2024"
         } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
           proj_roster <- "PAFF-2025"
@@ -418,6 +421,9 @@ sample_event_server <- function(id, input_list) {
         } else if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
           df <- tibble(status = "add sample event ID column!")
           
+        } else if(is.null(input_list$project_directory)){
+          df <- tibble(status = "Roster check is only available for L1 files")
+
         } else if(is.null(get_rls_project())){
           df <- tibble()
           
@@ -493,7 +499,7 @@ sample_event_server <- function(id, input_list) {
               distinct(), 
             
             load_rls_l2_data() %>% 
-              filter(input_filename != input_list$data_filename) %>% 
+              filter(!input_filename %in% input_list$loaded_input_filenames) %>%
               filter(site_name %in% site_names,
                      year(date) == survey_year) %>% 
               collect()

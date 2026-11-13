@@ -22,7 +22,7 @@ seagrass_leaf_monitoring_v1_vis_server <- function(id, input_list) {
     load_additional_seagrass <- reactive({
       df <- bind_rows(
         marinegeo.utils::db_arrow_marinegeo(input_list$output_table_id) %>%
-          filter(input_filename != input_list$data_filename,
+          filter(!input_filename %in% input_list$loaded_input_filenames,
                  partner_code %in% unique(input_list$out_df$partner_code)) %>%
           collect(),
         input_list$out_df
